@@ -279,7 +279,7 @@ function QuickAdd({ onAdd, busy }: { onAdd: (p: { type: "income" | "expense"; am
 
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
         <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R</span>
           <input
             type="number" inputMode="decimal" step="0.01" min="0" required
             value={amount} onChange={(e) => setAmount(e.target.value)}
