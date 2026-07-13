@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cash_entries: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          description: string | null
+          entry_date: string
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
