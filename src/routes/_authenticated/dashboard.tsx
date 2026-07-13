@@ -21,7 +21,7 @@ type Entry = {
 type Settings = { user_id: string; start_date: string };
 
 function fmt(n: number) {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", maximumFractionDigits: 2 }).format(n);
 }
 
 function daysBetween(a: string, b: Date) {
