@@ -14,38 +14,416 @@ export type Database = {
   }
   public: {
     Tables: {
-      cash_entries: {
+      accounts: {
+        Row: {
+          archived: boolean
+          color: string | null
+          created_at: string
+          currency: string
+          icon: string | null
+          id: string
+          name: string
+          opening_balance: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          color?: string | null
+          created_at?: string
+          currency?: string
+          icon?: string | null
+          id?: string
+          name: string
+          opening_balance?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          color?: string | null
+          created_at?: string
+          currency?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          opening_balance?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bills: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category: string | null
+          created_at: string
+          due_date: string
+          id: string
+          name: string
+          notes: string | null
+          paid: boolean
+          paid_at: string | null
+          recurring_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          recurring_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          recurring_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      budgets: {
         Row: {
           amount: number
+          category: string
+          created_at: string
+          id: string
+          period: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          id?: string
+          period?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          period?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_entries: {
+        Row: {
+          account_id: string | null
+          amount: number
+          archived_at: string | null
           category: string | null
           created_at: string
           description: string | null
           entry_date: string
           id: string
+          location: string | null
+          merchant: string | null
+          notes: string | null
+          payment_method: string | null
+          receipt_url: string | null
+          recurring_id: string | null
+          reference: string | null
+          status: string
+          tags: string[] | null
           type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          location?: string | null
+          merchant?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_id?: string | null
+          reference?: string | null
+          status?: string
+          tags?: string[] | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          location?: string | null
+          merchant?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_id?: string | null
+          reference?: string | null
+          status?: string
+          tags?: string[] | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          metadata: Json | null
+          read_at: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          currency: string
+          display_name: string | null
+          locale: string
+          monthly_goal: number | null
+          notify_prefs: Json
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          currency?: string
+          display_name?: string | null
+          locale?: string
+          monthly_goal?: number | null
+          notify_prefs?: Json
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          currency?: string
+          display_name?: string | null
+          locale?: string
+          monthly_goal?: number | null
+          notify_prefs?: Json
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_rules: {
+        Row: {
+          account_id: string | null
+          active: boolean
+          amount: number
+          category: string | null
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          interval_count: number
+          last_run: string | null
+          name: string
+          next_run: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          active?: boolean
+          amount: number
+          category?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          interval_count?: number
+          last_run?: string | null
+          name: string
+          next_run?: string
+          start_date?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          active?: boolean
+          amount?: number
+          category?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          interval_count?: number
+          last_run?: string | null
+          name?: string
+          next_run?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      savings_goals: {
+        Row: {
+          color: string | null
+          created_at: string
+          current_amount: number
+          icon: string | null
+          id: string
+          name: string
+          target_amount: number
+          target_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          icon?: string | null
+          id?: string
+          name: string
+          target_amount: number
+          target_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          icon?: string | null
+          id?: string
+          name?: string
+          target_amount?: number
+          target_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          from_account_id: string
+          id: string
+          notes: string | null
+          to_account_id: string
+          transfer_date: string
           user_id: string
         }
         Insert: {
           amount: number
-          category?: string | null
           created_at?: string
-          description?: string | null
-          entry_date?: string
+          from_account_id: string
           id?: string
-          type: string
+          notes?: string | null
+          to_account_id: string
+          transfer_date?: string
           user_id: string
         }
         Update: {
           amount?: number
-          category?: string | null
           created_at?: string
-          description?: string | null
-          entry_date?: string
+          from_account_id?: string
           id?: string
-          type?: string
+          notes?: string | null
+          to_account_id?: string
+          transfer_date?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
