@@ -396,15 +396,17 @@ function Dashboard() {
           <div className="flex items-center gap-1.5">
             <Link
               to="/accounts"
-              className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Accounts"
             >
-              <Wallet className="h-3.5 w-3.5" /> Accounts
+              <Wallet className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Accounts</span>
             </Link>
             <Link
               to="/transactions"
-              className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Transactions"
             >
-              <ArrowUpRight className="h-3.5 w-3.5" /> Transactions
+              <ArrowUpRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Transactions</span>
             </Link>
             <button
               onClick={() => setDark(!dark)}
