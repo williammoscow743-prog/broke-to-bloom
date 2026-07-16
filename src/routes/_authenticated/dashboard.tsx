@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -394,6 +394,20 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            <Link
+              to="/accounts"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Accounts"
+            >
+              <Wallet className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Accounts</span>
+            </Link>
+            <Link
+              to="/transactions"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Transactions"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Transactions</span>
+            </Link>
             <button
               onClick={() => setDark(!dark)}
               className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-foreground"
