@@ -738,28 +738,13 @@ function Dashboard() {
               </div>
             </div>
             <div className="space-y-2.5">
-              <InsightRow
-                text={
-                  stats.monthIn > 0 && stats.monthOut / Math.max(stats.monthIn, 1) < 0.8
-                    ? `You're saving ~${Math.round((1 - stats.monthOut / stats.monthIn) * 100)}% of income this month. Keep it up.`
-                    : "Try to keep monthly expenses under 80% of income."
-                }
-              />
-              <InsightRow
-                text={
-                  chartData.pie[0]
-                    ? `Top spend: ${chartData.pie[0].name} (${fmt(chartData.pie[0].value)}). Consider a weekly cap.`
-                    : "Log some expenses to unlock category insights."
-                }
-              />
-              <InsightRow
-                text={
-                  stats.savings > 0
-                    ? `Savings balance ${fmt(stats.savings)} — you're building a buffer.`
-                    : "Add an entry with category 'Savings' to start tracking your buffer."
-                }
-              />
+              {insights.length === 0 ? (
+                <InsightRow text="Log a few entries to unlock personalised insights." />
+              ) : (
+                insights.map((ins, i) => <InsightRow key={i} text={ins.text} />)
+              )}
             </div>
+
           </div>
 
           {/* Upcoming bills */}
