@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { HealthScoreCard } from "@/components/HealthScoreCard";
+import { computeHealthScore, computeInsights } from "@/lib/insights";
+
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -363,6 +366,10 @@ function Dashboard() {
     : 1;
   const progress = (dayNumber / 90) * 100;
 
+  const health = useMemo(() => computeHealthScore(entries, dayNumber), [entries, dayNumber]);
+  const insights = useMemo(() => computeInsights(entries), [entries]);
+
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -408,6 +415,14 @@ function Dashboard() {
             >
               <ArrowUpRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Transactions</span>
             </Link>
+            <Link
+              to="/calendar"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Calendar"
+            >
+              <Calendar className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Calendar</span>
+            </Link>
+
             <button
               onClick={() => setDark(!dark)}
               className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-foreground"
@@ -521,8 +536,14 @@ function Dashboard() {
           />
         </section>
 
+        {/* Financial Health */}
+        <section>
+          <HealthScoreCard health={health} />
+        </section>
+
         {/* Charts grid */}
         <section className="grid gap-4 lg:grid-cols-3">
+
           <ChartCard title="Income vs Expense" subtitle="Last 14 days" className="lg:col-span-2">
             {loading ? (
               <ChartSkeleton />
@@ -725,28 +746,13 @@ function Dashboard() {
               </div>
             </div>
             <div className="space-y-2.5">
-              <InsightRow
-                text={
-                  stats.monthIn > 0 && stats.monthOut / Math.max(stats.monthIn, 1) < 0.8
-                    ? `You're saving ~${Math.round((1 - stats.monthOut / stats.monthIn) * 100)}% of income this month. Keep it up.`
-                    : "Try to keep monthly expenses under 80% of income."
-                }
-              />
-              <InsightRow
-                text={
-                  chartData.pie[0]
-                    ? `Top spend: ${chartData.pie[0].name} (${fmt(chartData.pie[0].value)}). Consider a weekly cap.`
-                    : "Log some expenses to unlock category insights."
-                }
-              />
-              <InsightRow
-                text={
-                  stats.savings > 0
-                    ? `Savings balance ${fmt(stats.savings)} — you're building a buffer.`
-                    : "Add an entry with category 'Savings' to start tracking your buffer."
-                }
-              />
+              {insights.length === 0 ? (
+                <InsightRow text="Log a few entries to unlock personalised insights." />
+              ) : (
+                insights.map((ins, i) => <InsightRow key={i} text={ins.text} />)
+              )}
             </div>
+
           </div>
 
           {/* Upcoming bills */}
