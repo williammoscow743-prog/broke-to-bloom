@@ -366,6 +366,10 @@ function Dashboard() {
     : 1;
   const progress = (dayNumber / 90) * 100;
 
+  const health = useMemo(() => computeHealthScore(entries, dayNumber), [entries, dayNumber]);
+  const insights = useMemo(() => computeInsights(entries), [entries]);
+
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
