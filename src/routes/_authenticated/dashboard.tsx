@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { HealthScoreCard } from "@/components/HealthScoreCard";
+import { computeHealthScore, computeInsights } from "@/lib/insights";
+
 import {
   ArrowDownRight,
   ArrowUpRight,
