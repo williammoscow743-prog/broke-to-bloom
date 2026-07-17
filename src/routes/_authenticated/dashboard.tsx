@@ -521,8 +521,14 @@ function Dashboard() {
           />
         </section>
 
+        {/* Financial Health */}
+        <section>
+          <HealthScoreCard health={health} />
+        </section>
+
         {/* Charts grid */}
         <section className="grid gap-4 lg:grid-cols-3">
+
           <ChartCard title="Income vs Expense" subtitle="Last 14 days" className="lg:col-span-2">
             {loading ? (
               <ChartSkeleton />
