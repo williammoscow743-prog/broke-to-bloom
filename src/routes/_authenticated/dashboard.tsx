@@ -415,6 +415,14 @@ function Dashboard() {
             >
               <ArrowUpRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Transactions</span>
             </Link>
+            <Link
+              to="/calendar"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Calendar"
+            >
+              <Calendar className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Calendar</span>
+            </Link>
+
             <button
               onClick={() => setDark(!dark)}
               className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-foreground"
