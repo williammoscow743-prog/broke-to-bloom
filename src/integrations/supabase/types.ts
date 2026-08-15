@@ -60,45 +60,63 @@ export type Database = {
         Row: {
           account_id: string | null
           amount: number
+          archived_at: string | null
           category: string | null
           created_at: string
           due_date: string
           id: string
+          merchant: string | null
           name: string
           notes: string | null
           paid: boolean
           paid_at: string | null
+          payment_method: string | null
+          recurrence: string
           recurring_id: string | null
+          reminder_days: number
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           account_id?: string | null
           amount: number
+          archived_at?: string | null
           category?: string | null
           created_at?: string
           due_date: string
           id?: string
+          merchant?: string | null
           name: string
           notes?: string | null
           paid?: boolean
           paid_at?: string | null
+          payment_method?: string | null
+          recurrence?: string
           recurring_id?: string | null
+          reminder_days?: number
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           account_id?: string | null
           amount?: number
+          archived_at?: string | null
           category?: string | null
           created_at?: string
           due_date?: string
           id?: string
+          merchant?: string | null
           name?: string
           notes?: string | null
           paid?: boolean
           paid_at?: string | null
+          payment_method?: string | null
+          recurrence?: string
           recurring_id?: string | null
+          reminder_days?: number
+          status?: string
           updated_at?: string
           user_id?: string
         }
