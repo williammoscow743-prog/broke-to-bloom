@@ -1,4 +1,5 @@
 import { fmt } from "./finance";
+import { billBehaviourScore, computeBillStats, type Bill } from "./bills";
 
 export type EntryLite = {
   entry_date: string;
@@ -13,7 +14,11 @@ export type HealthBreakdown = {
   parts: { label: string; weight: number; score: number; hint: string }[];
 };
 
-export function computeHealthScore(entries: EntryLite[], dayNumber: number): HealthBreakdown {
+export function computeHealthScore(
+  entries: EntryLite[],
+  dayNumber: number,
+  bills: Bill[] = [],
+): HealthBreakdown {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEntries = entries.filter((e) => new Date(e.entry_date) >= monthStart);
@@ -43,13 +48,43 @@ export function computeHealthScore(entries: EntryLite[], dayNumber: number): Hea
   // Momentum (10) — journey days
   const momentum = Math.min(100, (dayNumber / 90) * 100);
 
-  const parts = [
-    { label: "Savings rate", weight: 30, score: Math.round(savingsScore), hint: `${Math.round(savingsRate * 100)}% of income saved this month` },
-    { label: "Consistency", weight: 25, score: Math.round(consistency), hint: `${days.size} active days in the last 30` },
-    { label: "Spend control", weight: 20, score: budget, hint: `Spending ${Math.round(spendRatio * 100)}% of income` },
-    { label: "Emergency buffer", weight: 15, score: Math.round(buffer), hint: `${fmt(Math.max(0, savings))} saved` },
-    { label: "Journey momentum", weight: 10, score: Math.round(momentum), hint: `Day ${dayNumber} of 90` },
-  ];
+  const activeBills = bills.filter((b) => !b.archived_at);
+  const hasBills = activeBills.length > 0;
+
+  const parts = hasBills
+    ? (() => {
+        // Bills take 15 of the weight; the original signals scale to 85.
+        const bill = billBehaviourScore(activeBills);
+        const s = computeBillStats(activeBills);
+        const obligations = s.totalDueThisMonth + s.totalOverdue;
+        const coverage = mIn > 0 ? Math.max(0, 1 - obligations / mIn) : 0.5;
+        const billScore = Math.round(bill.score * 0.7 + coverage * 100 * 0.3);
+        return [
+          { label: "Savings rate", weight: 26, score: Math.round(savingsScore), hint: `${Math.round(savingsRate * 100)}% of income saved this month` },
+          { label: "Consistency", weight: 21, score: Math.round(consistency), hint: `${days.size} active days in the last 30` },
+          { label: "Spend control", weight: 17, score: budget, hint: `Spending ${Math.round(spendRatio * 100)}% of income` },
+          { label: "Emergency buffer", weight: 13, score: Math.round(buffer), hint: `${fmt(Math.max(0, savings))} saved` },
+          { label: "Journey momentum", weight: 8, score: Math.round(momentum), hint: `Day ${dayNumber} of 90` },
+          {
+            label: "Bill discipline",
+            weight: 15,
+            score: Math.max(0, Math.min(100, billScore)),
+            hint:
+              s.overdue.length > 0
+                ? `Score reduced by ${s.overdue.length} overdue bill${s.overdue.length === 1 ? "" : "s"} (${fmt(s.totalOverdue)})`
+                : s.dueThisMonth.length === 0 && s.paidThisMonth.length > 0
+                  ? "All bills due this month are paid on time"
+                  : `${bill.hint}${obligations > 0 ? ` · ${fmt(obligations)} still due` : ""}`,
+          },
+        ];
+      })()
+    : [
+        { label: "Savings rate", weight: 30, score: Math.round(savingsScore), hint: `${Math.round(savingsRate * 100)}% of income saved this month` },
+        { label: "Consistency", weight: 25, score: Math.round(consistency), hint: `${days.size} active days in the last 30` },
+        { label: "Spend control", weight: 20, score: budget, hint: `Spending ${Math.round(spendRatio * 100)}% of income` },
+        { label: "Emergency buffer", weight: 15, score: Math.round(buffer), hint: `${fmt(Math.max(0, savings))} saved` },
+        { label: "Journey momentum", weight: 10, score: Math.round(momentum), hint: `Day ${dayNumber} of 90` },
+      ];
   const score = Math.round(parts.reduce((s, p) => s + (p.score * p.weight) / 100, 0));
   const tier: HealthBreakdown["tier"] =
     score >= 85 ? "Excellent" : score >= 70 ? "Strong" : score >= 50 ? "Growing" : "Building";

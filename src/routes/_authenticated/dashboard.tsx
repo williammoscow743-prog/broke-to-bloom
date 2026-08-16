@@ -5,6 +5,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HealthScoreCard } from "@/components/HealthScoreCard";
 import { computeHealthScore, computeInsights } from "@/lib/insights";
+import {
+  BILL_SELECT,
+  computeBillInsights,
+  computeBillStats,
+  effectiveStatus,
+  normaliseBill,
+  statusTone,
+  type Bill,
+} from "@/lib/bills";
 
 import {
   ArrowDownRight,
@@ -18,6 +27,7 @@ import {
   Sparkles,
   Sun,
   Target,
+  Receipt,
   Trash2,
   TrendingUp,
   Wallet,
@@ -160,6 +170,18 @@ function Dashboard() {
         .single();
       if (insErr) throw insErr;
       return created as Settings;
+    },
+  });
+
+  const billsQ = useQuery({
+    queryKey: ["dash-bills", user.id],
+    queryFn: async (): Promise<Bill[]> => {
+      const { data, error } = await supabase
+        .from("bills")
+        .select(BILL_SELECT)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((b) => normaliseBill(b as Record<string, unknown>));
     },
   });
 
@@ -366,8 +388,16 @@ function Dashboard() {
     : 1;
   const progress = (dayNumber / 90) * 100;
 
-  const health = useMemo(() => computeHealthScore(entries, dayNumber), [entries, dayNumber]);
-  const insights = useMemo(() => computeInsights(entries), [entries]);
+  const bills = billsQ.data ?? [];
+  const billStats = useMemo(() => computeBillStats(bills), [bills]);
+  const health = useMemo(() => computeHealthScore(entries, dayNumber, bills), [entries, dayNumber, bills]);
+  const insights = useMemo(
+    () => [
+      ...computeInsights(entries),
+      ...computeBillInsights(bills, { monthIncome: stats.monthIn, balance: stats.balance }),
+    ],
+    [entries, bills, stats.monthIn, stats.balance],
+  );
 
 
   async function signOut() {
@@ -414,6 +444,13 @@ function Dashboard() {
               aria-label="Transactions"
             >
               <ArrowUpRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Transactions</span>
+            </Link>
+            <Link
+              to="/bills"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Bills"
+            >
+              <Receipt className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Bills</span>
             </Link>
             <Link
               to="/calendar"
@@ -533,6 +570,50 @@ function Dashboard() {
             icon={<Sparkles className="h-4 w-4" />}
             tone={stats.monthIn - stats.monthOut >= 0 ? "income" : "expense"}
             loading={loading}
+          />
+        </section>
+
+        {/* Bills at a glance */}
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <BillStatCard
+            label="Upcoming"
+            count={billStats.upcoming.length}
+            total={billStats.upcoming.reduce((t, b) => t + b.amount, 0)}
+            filter="upcoming"
+            tone="brand"
+            loading={billsQ.isLoading}
+          />
+          <BillStatCard
+            label="Due this week"
+            count={billStats.dueThisWeek.length}
+            total={billStats.totalNext7}
+            filter="upcoming"
+            tone="expense"
+            loading={billsQ.isLoading}
+          />
+          <BillStatCard
+            label="Due this month"
+            count={billStats.dueThisMonth.length}
+            total={billStats.totalDueThisMonth}
+            filter="upcoming"
+            tone="expense"
+            loading={billsQ.isLoading}
+          />
+          <BillStatCard
+            label="Overdue"
+            count={billStats.overdue.length}
+            total={billStats.totalOverdue}
+            filter="overdue"
+            tone="expense"
+            loading={billsQ.isLoading}
+          />
+          <BillStatCard
+            label="Paid this month"
+            count={billStats.paidThisMonth.length}
+            total={billStats.totalPaidThisMonth}
+            filter="paid"
+            tone="income"
+            loading={billsQ.isLoading}
           />
         </section>
 
@@ -756,13 +837,70 @@ function Dashboard() {
           </div>
 
           {/* Upcoming bills */}
-          <WidgetCard title="Upcoming Bills" icon={<Bell className="h-4 w-4" />}>
-            <EmptyState
-              icon={<Bell className="h-6 w-6" />}
-              title="No bills scheduled"
-              hint="Tag expenses as 'Bills' to see them tracked here."
-              compact
-            />
+          <WidgetCard title="Upcoming Bills" icon={<Receipt className="h-4 w-4" />}>
+            {billsQ.isLoading ? (
+              <ListSkeleton />
+            ) : [...billStats.overdue, ...billStats.upcoming].length === 0 ? (
+              <div className="space-y-3">
+                <EmptyState
+                  icon={<Receipt className="h-6 w-6" />}
+                  title="No upcoming bills"
+                  hint="Add your recurring bills to see them tracked here."
+                  compact
+                />
+                <Link
+                  to="/bills"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Bill
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <ul className="space-y-1.5">
+                  {[...billStats.overdue, ...billStats.upcoming].slice(0, 5).map((b) => {
+                    const st = effectiveStatus(b);
+                    return (
+                      <li key={b.id}>
+                        <Link
+                          to="/bills"
+                          search={{ filter: "all" as const, open: b.id }}
+                          className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-muted/60"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium">{b.name}</div>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <span>{b.due_date}</span>
+                              {b.category && (
+                                <>
+                                  <span>·</span>
+                                  <span className="rounded-full bg-muted px-1.5 py-0.5">{b.category}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold">{fmt(b.amount)}</div>
+                            <span
+                              className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-medium capitalize ${statusTone(st)}`}
+                            >
+                              {st}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <Link
+                  to="/bills"
+                  search={{ filter: "all" as const, open: undefined }}
+                  className="block rounded-xl border border-border px-3 py-2 text-center text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  View All
+                </Link>
+              </div>
+            )}
           </WidgetCard>
 
           {/* Budget progress */}
@@ -1158,5 +1296,52 @@ function AddSheet({
         </form>
       </div>
     </div>
+  );
+}
+
+function BillStatCard({
+  label,
+  count,
+  total,
+  filter,
+  tone,
+  loading,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  filter: "upcoming" | "overdue" | "paid";
+  tone: "income" | "expense" | "brand";
+  loading?: boolean;
+}) {
+  const toneClass =
+    tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "expense"
+        ? "bg-expense/10 text-expense"
+        : "bg-accent/50 text-accent-foreground";
+  return (
+    <Link
+      to="/bills"
+      search={{ filter, open: undefined }}
+      className="rounded-2xl border border-border bg-card p-4 shadow-soft transition hover:shadow-lift"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className={`grid h-7 w-7 place-items-center rounded-lg ${toneClass}`}>
+          <Receipt className="h-4 w-4" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-3 h-7 w-20" />
+      ) : (
+        <>
+          <div className="mt-3 font-display text-xl font-semibold tracking-tight sm:text-2xl">{fmt(total)}</div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">
+            {count} bill{count === 1 ? "" : "s"}
+          </div>
+        </>
+      )}
+    </Link>
   );
 }
