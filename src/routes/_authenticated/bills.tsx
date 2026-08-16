@@ -99,7 +99,7 @@ function BillsPage() {
         const { error } = await supabase.from("bills").update(rest as never).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("bills").insert({ ...(rest as never), user_id: user.id });
+        const { error } = await supabase.from("bills").insert({ ...rest, user_id: user.id } as never);
         if (error) throw error;
       }
     },
