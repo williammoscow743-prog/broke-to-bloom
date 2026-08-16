@@ -93,7 +93,8 @@ function BillsPage() {
 
   const save = useMutation({
     mutationFn: async (payload: Partial<Bill> & { id?: string }) => {
-      const { id, ...rest } = payload;
+      const { id, ...rest } =
+        payload as Record<string, unknown> & { id?: string };
       if (id) {
         const { error } = await supabase.from("bills").update(rest as never).eq("id", id);
         if (error) throw error;
