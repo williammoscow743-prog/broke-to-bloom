@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +39,15 @@ import {
   X,
 } from "lucide-react";
 
+const FILTERS = ["all", "upcoming", "paid", "overdue", "recurring", "archived"] as const;
+
 export const Route = createFileRoute("/_authenticated/bills")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    filter: (FILTERS as readonly string[]).includes(String(search.filter))
+      ? (String(search.filter) as Filter)
+      : ("all" as Filter),
+    open: typeof search.open === "string" ? search.open : undefined,
+  }),
   component: BillsPage,
 });
 
@@ -55,7 +63,8 @@ function BillsPage() {
 
   const [view, setView] = useState<"table" | "cards">("table");
   const [tab, setTab] = useState<"list" | "reports">("list");
-  const [filter, setFilter] = useState<Filter>("all");
+  const search = Route.useSearch();
+  const [filter, setFilter] = useState<Filter>(search.filter);
   const [category, setCategory] = useState("all");
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Bill | "new" | null>(null);
@@ -83,6 +92,12 @@ function BillsPage() {
   });
 
   const bills = billsQ.data ?? [];
+
+  useEffect(() => {
+    if (!search.open) return;
+    const target = bills.find((b) => b.id === search.open);
+    if (target) setEditing(target);
+  }, [search.open, bills]);
   const accountName = (id: string | null) => accountsQ.data?.find((a) => a.id === id)?.name ?? "—";
 
   const invalidate = () => {
@@ -301,7 +316,7 @@ function BillsPage() {
                 />
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
-                {(["all", "upcoming", "paid", "overdue", "recurring", "archived"] as Filter[]).map((f) => (
+                {(FILTERS as readonly Filter[]).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
