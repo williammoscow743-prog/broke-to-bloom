@@ -57,7 +57,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative grid h-9 w-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-foreground"
+        className="relative grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-muted-foreground shadow-soft transition hover:text-foreground"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
