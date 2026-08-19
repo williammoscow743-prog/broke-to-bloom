@@ -20,27 +20,28 @@ export function AuthFloatingTools({ userId }: { userId: string }) {
 
   return (
     <>
-      <div className="fixed right-4 top-3 z-40 flex items-center gap-1.5 sm:right-6">
+      <div className="fixed left-4 bottom-6 z-40 flex items-center gap-2 rounded-2xl border border-border bg-card/90 p-1.5 shadow-lift backdrop-blur-xl sm:left-6 sm:gap-2.5">
         <button
           onClick={() => setOpen(true)}
-          className="hidden items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-2 text-xs font-medium text-muted-foreground shadow-soft backdrop-blur transition hover:text-foreground sm:inline-flex"
+          className="hidden items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground shadow-soft transition hover:text-foreground sm:inline-flex"
           aria-label="Search"
         >
           <Search className="h-3.5 w-3.5" />
           <span>Search</span>
-          <kbd className="rounded border border-border bg-background px-1 py-0 text-[10px]">⌘K</kbd>
+          <kbd className="rounded border border-border bg-muted px-1 py-0 text-[10px]">⌘K</kbd>
         </button>
         <button
           onClick={() => setOpen(true)}
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/80 text-muted-foreground shadow-soft backdrop-blur sm:hidden"
+          className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-muted-foreground shadow-soft transition hover:text-foreground sm:hidden"
           aria-label="Search"
         >
           <Search className="h-4 w-4" />
         </button>
+        <div className="h-6 w-px bg-border hidden sm:block" />
         <NotificationBell userId={userId} />
         <Link
           to="/settings"
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/80 text-muted-foreground shadow-soft backdrop-blur transition hover:text-foreground"
+          className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-muted-foreground shadow-soft transition hover:text-foreground"
           aria-label="Settings"
         >
           <Settings className="h-4 w-4" />
