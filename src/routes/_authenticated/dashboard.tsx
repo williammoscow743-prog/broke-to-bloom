@@ -447,7 +447,7 @@ function Dashboard() {
             </Link>
             <Link
               to="/bills"
-              search={{ filter: "all", open: undefined }}
+              search={{ filter: "all" as const, open: undefined }}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
               aria-label="Bills"
             >
@@ -851,7 +851,7 @@ function Dashboard() {
                 />
                 <Link
                   to="/bills"
-                  search={{ filter: "all", open: undefined }}
+                  search={{ filter: "all" as const, open: undefined }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Bill
