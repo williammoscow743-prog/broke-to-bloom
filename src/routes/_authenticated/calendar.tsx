@@ -91,6 +91,19 @@ function CalendarPage() {
   const selectedEntries = (entriesQ.data ?? []).filter((e) => e.entry_date === selected);
   const selectedBills = (billsQ.data ?? []).filter((b) => b.due_date === selected);
 
+  const billSummary = useMemo(() => {
+    const list = billsQ.data ?? [];
+    const today = isoDate(new Date());
+    const dueToday = list.filter((b) => b.due_date === today && effectiveStatus(b) !== "paid");
+    const dueWeek = list.filter((b) => {
+      const d = daysUntil(b.due_date);
+      return d >= 0 && d <= 7 && effectiveStatus(b) !== "paid";
+    });
+    const overdue = list.filter((b) => effectiveStatus(b) === "overdue");
+    const sum = (arr: Bill[]) => arr.reduce((s, b) => s + b.amount, 0);
+    return { dueToday, dueWeek, overdue, todayTotal: sum(dueToday), weekTotal: sum(dueWeek), overdueTotal: sum(overdue) };
+  }, [billsQ.data]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
