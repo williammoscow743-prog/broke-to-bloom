@@ -152,6 +152,22 @@ function CalendarPage() {
           </div>
         </div>
 
+        {(billSummary.dueWeek.length > 0 || billSummary.overdue.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Receipt className="h-3.5 w-3.5 text-amber-600" /> Bills
+            </span>
+            <span className="text-muted-foreground">Due today: <strong className="text-foreground">{billSummary.dueToday.length}</strong> ({fmt(billSummary.todayTotal)})</span>
+            <span className="text-muted-foreground">Next 7 days: <strong className="text-foreground">{billSummary.dueWeek.length}</strong> ({fmt(billSummary.weekTotal)})</span>
+            {billSummary.overdue.length > 0 && (
+              <span className="text-rose-600">Overdue: <strong>{billSummary.overdue.length}</strong> ({fmt(billSummary.overdueTotal)})</span>
+            )}
+            <button onClick={() => navigate({ to: "/bills", search: { filter: "all" as const, open: undefined } })} className="ml-auto text-primary hover:underline">
+              View all bills
+            </button>
+          </div>
+        )}
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-3xl border border-border bg-card p-4 shadow-soft">
             <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
