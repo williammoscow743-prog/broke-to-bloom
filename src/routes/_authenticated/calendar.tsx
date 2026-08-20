@@ -4,13 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, Receipt } from "lucide-react";
 import { fmt, isoDate } from "@/lib/finance";
+import { BILL_SELECT, normaliseBill, effectiveStatus, statusTone, daysUntil, type Bill } from "@/lib/bills";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
   component: CalendarPage,
 });
 
 type Entry = { id: string; entry_date: string; type: "income" | "expense"; amount: number; description: string | null; category: string | null };
-type Bill = { id: string; name: string; amount: number; due_date: string; paid: boolean };
 
 function CalendarPage() {
   const { user } = Route.useRouteContext();
