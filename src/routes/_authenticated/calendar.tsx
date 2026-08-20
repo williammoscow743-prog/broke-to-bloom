@@ -4,13 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, Receipt } from "lucide-react";
 import { fmt, isoDate } from "@/lib/finance";
+import { BILL_SELECT, normaliseBill, effectiveStatus, statusTone, daysUntil, type Bill } from "@/lib/bills";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
   component: CalendarPage,
 });
 
 type Entry = { id: string; entry_date: string; type: "income" | "expense"; amount: number; description: string | null; category: string | null };
-type Bill = { id: string; name: string; amount: number; due_date: string; paid: boolean };
 
 function CalendarPage() {
   const { user } = Route.useRouteContext();
@@ -44,13 +44,16 @@ function CalendarPage() {
     queryFn: async (): Promise<Bill[]> => {
       const { data, error } = await supabase
         .from("bills")
-        .select("id,name,amount,due_date,paid")
+        .select(BILL_SELECT)
+        .is("archived_at", null)
         .gte("due_date", isoDate(monthStart))
         .lte("due_date", isoDate(monthEnd));
       if (error) throw error;
-      return (data ?? []).map((b) => ({ ...b, amount: Number(b.amount) })) as Bill[];
+      return (data ?? []).map((b) => normaliseBill(b as Record<string, unknown>));
     },
   });
+
+  const openBill = (id: string) => navigate({ to: "/bills", search: { filter: "all" as const, open: id } });
 
   const byDay = useMemo(() => {
     const map = new Map<string, { income: number; expense: number; bills: number; count: number }>();
@@ -87,6 +90,19 @@ function CalendarPage() {
 
   const selectedEntries = (entriesQ.data ?? []).filter((e) => e.entry_date === selected);
   const selectedBills = (billsQ.data ?? []).filter((b) => b.due_date === selected);
+
+  const billSummary = useMemo(() => {
+    const list = billsQ.data ?? [];
+    const today = isoDate(new Date());
+    const dueToday = list.filter((b) => b.due_date === today && effectiveStatus(b) !== "paid");
+    const dueWeek = list.filter((b) => {
+      const d = daysUntil(b.due_date);
+      return d >= 0 && d <= 7 && effectiveStatus(b) !== "paid";
+    });
+    const overdue = list.filter((b) => effectiveStatus(b) === "overdue");
+    const sum = (arr: Bill[]) => arr.reduce((s, b) => s + b.amount, 0);
+    return { dueToday, dueWeek, overdue, todayTotal: sum(dueToday), weekTotal: sum(dueWeek), overdueTotal: sum(overdue) };
+  }, [billsQ.data]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -135,6 +151,22 @@ function CalendarPage() {
             </div>
           </div>
         </div>
+
+        {(billSummary.dueWeek.length > 0 || billSummary.overdue.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Receipt className="h-3.5 w-3.5 text-amber-600" /> Bills
+            </span>
+            <span className="text-muted-foreground">Due today: <strong className="text-foreground">{billSummary.dueToday.length}</strong> ({fmt(billSummary.todayTotal)})</span>
+            <span className="text-muted-foreground">Next 7 days: <strong className="text-foreground">{billSummary.dueWeek.length}</strong> ({fmt(billSummary.weekTotal)})</span>
+            {billSummary.overdue.length > 0 && (
+              <span className="text-rose-600">Overdue: <strong>{billSummary.overdue.length}</strong> ({fmt(billSummary.overdueTotal)})</span>
+            )}
+            <button onClick={() => navigate({ to: "/bills", search: { filter: "all" as const, open: undefined } })} className="ml-auto text-primary hover:underline">
+              View all bills
+            </button>
+          </div>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-3xl border border-border bg-card p-4 shadow-soft">
@@ -193,12 +225,30 @@ function CalendarPage() {
               <div className="mb-4">
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-widest text-amber-600">Bills due</div>
                 <ul className="space-y-1.5">
-                  {selectedBills.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2 text-sm">
-                      <span className="flex items-center gap-2"><Receipt className="h-3.5 w-3.5 text-amber-600" /> {b.name}</span>
-                      <span className="font-medium">{fmt(b.amount)}</span>
-                    </li>
-                  ))}
+                  {selectedBills.map((b) => {
+                    const st = effectiveStatus(b);
+                    return (
+                      <li key={b.id}>
+                        <button
+                          onClick={() => openBill(b.id)}
+                          className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-sm transition hover:bg-amber-500/20"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Receipt className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                              <span className={`truncate ${st === "paid" ? "line-through opacity-70" : ""}`}>{b.name}</span>
+                            </span>
+                            <span className="font-medium">{fmt(b.amount)}</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-[10px]">
+                            <span className={`rounded-full border px-1.5 py-0.5 capitalize ${statusTone(st)}`}>{st}</span>
+                            {b.category && <span className="truncate text-muted-foreground">{b.category}</span>}
+                            {b.recurrence !== "one-time" && <span className="text-muted-foreground">· {b.recurrence}</span>}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
