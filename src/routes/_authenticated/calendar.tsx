@@ -44,13 +44,16 @@ function CalendarPage() {
     queryFn: async (): Promise<Bill[]> => {
       const { data, error } = await supabase
         .from("bills")
-        .select("id,name,amount,due_date,paid")
+        .select(BILL_SELECT)
+        .is("archived_at", null)
         .gte("due_date", isoDate(monthStart))
         .lte("due_date", isoDate(monthEnd));
       if (error) throw error;
-      return (data ?? []).map((b) => ({ ...b, amount: Number(b.amount) })) as Bill[];
+      return (data ?? []).map((b) => normaliseBill(b as Record<string, unknown>));
     },
   });
+
+  const openBill = (id: string) => navigate({ to: "/bills", search: { filter: "all" as const, open: id } });
 
   const byDay = useMemo(() => {
     const map = new Map<string, { income: number; expense: number; bills: number; count: number }>();
