@@ -209,12 +209,30 @@ function CalendarPage() {
               <div className="mb-4">
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-widest text-amber-600">Bills due</div>
                 <ul className="space-y-1.5">
-                  {selectedBills.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2 text-sm">
-                      <span className="flex items-center gap-2"><Receipt className="h-3.5 w-3.5 text-amber-600" /> {b.name}</span>
-                      <span className="font-medium">{fmt(b.amount)}</span>
-                    </li>
-                  ))}
+                  {selectedBills.map((b) => {
+                    const st = effectiveStatus(b);
+                    return (
+                      <li key={b.id}>
+                        <button
+                          onClick={() => openBill(b.id)}
+                          className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-sm transition hover:bg-amber-500/20"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Receipt className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                              <span className={`truncate ${st === "paid" ? "line-through opacity-70" : ""}`}>{b.name}</span>
+                            </span>
+                            <span className="font-medium">{fmt(b.amount)}</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-[10px]">
+                            <span className={`rounded-full border px-1.5 py-0.5 capitalize ${statusTone(st)}`}>{st}</span>
+                            {b.category && <span className="truncate text-muted-foreground">{b.category}</span>}
+                            {b.recurrence !== "one-time" && <span className="text-muted-foreground">· {b.recurrence}</span>}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
