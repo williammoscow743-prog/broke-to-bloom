@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, X, Wallet, ArrowUpRight, Bell, Settings, Calendar as CalIcon, LayoutDashboard } from "lucide-react";
+import { Search, X, Wallet, ArrowUpRight, Bell, Settings, Calendar as CalIcon, LayoutDashboard, Receipt } from "lucide-react";
 import { fmt } from "@/lib/finance";
 
 type Hit =
   | { kind: "entry"; id: string; title: string; sub: string; amount: number; type: "income" | "expense" }
   | { kind: "account"; id: string; title: string; sub: string }
   | { kind: "bill"; id: string; title: string; sub: string; amount: number }
-  | { kind: "nav"; id: string; title: string; sub: string; to: string; icon: React.ReactNode };
+  | { kind: "nav"; id: string; title: string; sub: string; to: string; icon: React.ReactNode; keywords?: string };
 
 const NAV: Hit[] = [
   { kind: "nav", id: "n-dash", title: "Dashboard", sub: "Overview & insights", to: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { kind: "nav", id: "n-tx", title: "Transactions", sub: "Search & manage entries", to: "/transactions", icon: <ArrowUpRight className="h-4 w-4" /> },
   { kind: "nav", id: "n-acc", title: "Accounts", sub: "Balances & transfers", to: "/accounts", icon: <Wallet className="h-4 w-4" /> },
+  { kind: "nav", id: "n-bills", title: "Bills", sub: "Open Bills and manage upcoming, paid and overdue bills.", to: "/bills", icon: <Receipt className="h-4 w-4" />, keywords: "bills bill upcoming bills paid overdue payments" },
   { kind: "nav", id: "n-cal", title: "Calendar", sub: "Cash flow by day", to: "/calendar", icon: <CalIcon className="h-4 w-4" /> },
   { kind: "nav", id: "n-notif", title: "Notifications", sub: "Alerts & reminders", to: "/notifications", icon: <Bell className="h-4 w-4" /> },
   { kind: "nav", id: "n-set", title: "Settings", sub: "Profile & preferences", to: "/settings", icon: <Settings className="h-4 w-4" /> },
