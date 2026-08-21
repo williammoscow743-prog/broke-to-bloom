@@ -68,7 +68,10 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
       for (const a of accounts.data ?? []) results.push({ kind: "account", id: a.id, title: a.name, sub: `Account · ${a.type}` });
       for (const b of bills.data ?? [])
         results.push({ kind: "bill", id: b.id, title: b.name, sub: `Bill · due ${b.due_date}`, amount: Number(b.amount) });
-      const navHits = NAV.filter((n) => n.title.toLowerCase().includes(term.toLowerCase()));
+      const tlc = term.toLowerCase();
+      const navHits = NAV.filter(
+        (n) => n.title.toLowerCase().includes(tlc) || n.sub.toLowerCase().includes(tlc) || n.keywords?.toLowerCase().includes(tlc),
+      );
       setHits([...navHits, ...results]);
       setActive(0);
     }, 150);
@@ -77,8 +80,10 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
 
   function go(h: Hit) {
     onClose();
-    if (h.kind === "nav") navigate({ to: h.to });
-    else if (h.kind === "entry") navigate({ to: "/transactions", search: { q: h.title } as any });
+    if (h.kind === "nav") {
+      if (h.id === "n-bills") navigate({ to: "/bills", search: { filter: "all" as const, open: undefined } });
+      else navigate({ to: h.to });
+    } else if (h.kind === "entry") navigate({ to: "/transactions", search: { q: h.title } as any });
     else if (h.kind === "account") navigate({ to: "/accounts" });
     else if (h.kind === "bill") navigate({ to: "/calendar" });
   }
