@@ -70,7 +70,7 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
         results.push({ kind: "bill", id: b.id, title: b.name, sub: `Bill · due ${b.due_date}`, amount: Number(b.amount) });
       const tlc = term.toLowerCase();
       const navHits = NAV.filter(
-        (n) => n.title.toLowerCase().includes(tlc) || n.sub.toLowerCase().includes(tlc) || n.keywords?.toLowerCase().includes(tlc),
+        (n) => n.title.toLowerCase().includes(tlc) || n.sub.toLowerCase().includes(tlc) || (n.kind === "nav" && n.keywords?.toLowerCase().includes(tlc)),
       );
       setHits([...navHits, ...results]);
       setActive(0);
