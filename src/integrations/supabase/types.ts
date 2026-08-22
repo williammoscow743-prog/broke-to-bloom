@@ -443,6 +443,63 @@ export type Database = {
           },
         ]
       }
+      upcoming_income: {
+        Row: {
+          account_id: string | null
+          amount: number
+          archived_at: string | null
+          category: string | null
+          created_at: string
+          entry_id: string | null
+          expected_date: string
+          id: string
+          name: string
+          notes: string | null
+          received_at: string | null
+          recurrence: string
+          source: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          entry_id?: string | null
+          expected_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          received_at?: string | null
+          recurrence?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          entry_id?: string | null
+          expected_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          received_at?: string | null
+          recurrence?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string
