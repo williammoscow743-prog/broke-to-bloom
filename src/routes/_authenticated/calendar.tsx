@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, Receipt, HandCoins } from "lucide-react";
 import { fmt, isoDate } from "@/lib/finance";
 import { BILL_SELECT, normaliseBill, effectiveStatus, statusTone, daysUntil, type Bill } from "@/lib/bills";
+import { INCOME_SELECT, normaliseIncome, incomeStatus, incomeStatusTone, daysUntilIncome, type UpcomingIncome } from "@/lib/income";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
   component: CalendarPage,
@@ -53,6 +54,21 @@ function CalendarPage() {
     },
   });
 
+  // All non-archived income (real rows only; no synthetic recurrences). Used for grid + summary.
+  const incomeQ = useQuery({
+    queryKey: ["cal-income", user.id],
+    queryFn: async (): Promise<UpcomingIncome[]> => {
+      const { data, error } = await supabase
+        .from("upcoming_income")
+        .select(INCOME_SELECT)
+        .is("archived_at", null)
+        .order("expected_date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((r) => normaliseIncome(r as Record<string, unknown>));
+    },
+  });
+  const openIncome = (id: string) => navigate({ to: "/income", search: { filter: "all" as const, open: id } });
+
   const openBill = (id: string) => navigate({ to: "/bills", search: { filter: "all" as const, open: id } });
 
   const byDay = useMemo(() => {
@@ -72,6 +88,17 @@ function CalendarPage() {
     return map;
   }, [entriesQ.data, billsQ.data]);
 
+  // Expected (forecast) income per day — kept separate so it never affects actual month totals.
+  const expectedByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of incomeQ.data ?? []) {
+      const st = incomeStatus(i);
+      if (st === "received" || st === "cancelled") continue;
+      map.set(i.expected_date, (map.get(i.expected_date) ?? 0) + i.amount);
+    }
+    return map;
+  }, [incomeQ.data]);
+
   // Build 6-week grid (Mon start)
   const grid: (Date | null)[] = [];
   const firstDow = (monthStart.getDay() + 6) % 7;
@@ -90,6 +117,23 @@ function CalendarPage() {
 
   const selectedEntries = (entriesQ.data ?? []).filter((e) => e.entry_date === selected);
   const selectedBills = (billsQ.data ?? []).filter((b) => b.due_date === selected);
+
+  const selectedIncome = (incomeQ.data ?? []).filter((i) => i.expected_date === selected);
+
+  const incomeSummary = useMemo(() => {
+    const open = (incomeQ.data ?? []).filter((i) => {
+      const st = incomeStatus(i);
+      return st === "expected" || st === "overdue";
+    });
+    const dueToday = open.filter((i) => daysUntilIncome(i.expected_date) === 0);
+    const dueWeek = open.filter((i) => {
+      const d = daysUntilIncome(i.expected_date);
+      return d >= 0 && d <= 7;
+    });
+    const overdue = open.filter((i) => incomeStatus(i) === "overdue");
+    const sum = (arr: UpcomingIncome[]) => arr.reduce((s, i) => s + i.amount, 0);
+    return { dueToday, dueWeek, overdue, todayTotal: sum(dueToday), weekTotal: sum(dueWeek), overdueTotal: sum(overdue) };
+  }, [incomeQ.data]);
 
   const billSummary = useMemo(() => {
     const list = billsQ.data ?? [];
@@ -168,6 +212,22 @@ function CalendarPage() {
           </div>
         )}
 
+        {(incomeSummary.dueWeek.length > 0 || incomeSummary.overdue.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <HandCoins className="h-3.5 w-3.5 text-sky-600" /> Expected income
+            </span>
+            <span className="text-muted-foreground">Due today: <strong className="text-foreground">{incomeSummary.dueToday.length}</strong> ({fmt(incomeSummary.todayTotal)})</span>
+            <span className="text-muted-foreground">Next 7 days: <strong className="text-foreground">{incomeSummary.dueWeek.length}</strong> ({fmt(incomeSummary.weekTotal)})</span>
+            {incomeSummary.overdue.length > 0 && (
+              <span className="text-rose-600">Overdue: <strong>{incomeSummary.overdue.length}</strong> ({fmt(incomeSummary.overdueTotal)})</span>
+            )}
+            <button onClick={() => navigate({ to: "/income", search: { filter: "all" as const, open: undefined } })} className="ml-auto text-primary hover:underline">
+              View all income
+            </button>
+          </div>
+        )}
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-3xl border border-border bg-card p-4 shadow-soft">
             <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
@@ -180,6 +240,7 @@ function CalendarPage() {
                 const info = byDay.get(key);
                 const isToday = key === isoDate(new Date());
                 const isSel = key === selected;
+                const expected = expectedByDay.get(key) ?? 0;
                 const net = (info?.income ?? 0) - (info?.expense ?? 0);
                 return (
                   <button
@@ -190,11 +251,12 @@ function CalendarPage() {
                     }`}
                   >
                     <span className={`text-[11px] ${isSel ? "font-semibold text-primary" : "text-foreground"}`}>{d.getDate()}</span>
-                    {info && (
+                    {(info || expected > 0) && (
                       <div className="flex w-full flex-col gap-0.5">
-                        {info.income > 0 && <div className="h-1 rounded-full bg-emerald-500/70" style={{ width: `${Math.min(100, (info.income / 5000) * 100)}%` }} />}
-                        {info.expense > 0 && <div className="h-1 rounded-full bg-rose-500/70" style={{ width: `${Math.min(100, (info.expense / 5000) * 100)}%` }} />}
-                        {info.bills > 0 && <div className="h-1 rounded-full bg-amber-500/70" style={{ width: `${Math.min(100, (info.bills / 5000) * 100)}%` }} />}
+                        {(info?.income ?? 0) > 0 && <div className="h-1 rounded-full bg-emerald-500/70" style={{ width: `${Math.min(100, ((info?.income ?? 0) / 5000) * 100)}%` }} />}
+                        {(info?.expense ?? 0) > 0 && <div className="h-1 rounded-full bg-rose-500/70" style={{ width: `${Math.min(100, ((info?.expense ?? 0) / 5000) * 100)}%` }} />}
+                        {(info?.bills ?? 0) > 0 && <div className="h-1 rounded-full bg-amber-500/70" style={{ width: `${Math.min(100, ((info?.bills ?? 0) / 5000) * 100)}%` }} />}
+                        {expected > 0 && <div className="h-1 rounded-full border border-dashed border-sky-500 bg-sky-500/30" style={{ width: `${Math.min(100, (expected / 5000) * 100)}%` }} />}
                       </div>
                     )}
                     {info && (
@@ -211,6 +273,7 @@ function CalendarPage() {
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Income</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" /> Expense</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Bill due</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" /> Expected income</span>
             </div>
           </div>
 
@@ -252,7 +315,39 @@ function CalendarPage() {
                 </ul>
               </div>
             )}
-            {selectedEntries.length === 0 && selectedBills.length === 0 ? (
+            {selectedIncome.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-widest text-sky-600">Upcoming income</div>
+                <ul className="space-y-1.5">
+                  {selectedIncome.map((i) => {
+                    const st = incomeStatus(i);
+                    return (
+                      <li key={i.id}>
+                        <button
+                          onClick={() => openIncome(i.id)}
+                          className="w-full rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-left text-sm transition hover:bg-sky-500/20"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <HandCoins className="h-3.5 w-3.5 shrink-0 text-sky-600" />
+                              <span className={`truncate ${st === "cancelled" ? "line-through opacity-70" : ""}`}>{i.name}</span>
+                            </span>
+                            <span className="font-medium text-emerald-600">+{fmt(i.amount)}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px]">
+                            <span className={`rounded-full border px-1.5 py-0.5 capitalize ${incomeStatusTone(st)}`}>{st}</span>
+                            {i.source && <span className="truncate text-muted-foreground">{i.source}</span>}
+                            <span className="text-muted-foreground">· {i.expected_date}</span>
+                            <span className="text-muted-foreground">· {i.recurrence}</span>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {selectedEntries.length === 0 && selectedBills.length === 0 && selectedIncome.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">No activity for this day.</div>
             ) : (
               <ul className="space-y-1.5">
