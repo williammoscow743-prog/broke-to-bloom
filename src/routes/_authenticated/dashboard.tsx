@@ -14,6 +14,15 @@ import {
   statusTone,
   type Bill,
 } from "@/lib/bills";
+import {
+  INCOME_SELECT,
+  computeIncomeInsights,
+  computeIncomeStats,
+  incomeStatus,
+  incomeStatusTone,
+  normaliseIncome,
+  type UpcomingIncome,
+} from "@/lib/income";
 
 import {
   ArrowDownRight,
@@ -28,6 +37,7 @@ import {
   Sun,
   Target,
   Receipt,
+  HandCoins,
   Trash2,
   TrendingUp,
   Wallet,
@@ -182,6 +192,19 @@ function Dashboard() {
         .order("due_date", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((b) => normaliseBill(b as Record<string, unknown>));
+    },
+  });
+
+  const incomeQ = useQuery({
+    queryKey: ["dash-income", user.id],
+    queryFn: async (): Promise<UpcomingIncome[]> => {
+      const { data, error } = await supabase
+        .from("upcoming_income")
+        .select(INCOME_SELECT)
+        .is("archived_at", null)
+        .order("expected_date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((r) => normaliseIncome(r as Record<string, unknown>));
     },
   });
 
@@ -390,13 +413,31 @@ function Dashboard() {
 
   const bills = billsQ.data ?? [];
   const billStats = useMemo(() => computeBillStats(bills), [bills]);
+  const incomeList = incomeQ.data ?? [];
+  const incomeStats = useMemo(() => computeIncomeStats(incomeList), [incomeList]);
+  const upcomingIncome = useMemo(
+    () => [...incomeStats.overdue, ...incomeStats.expected].sort((a, b) => a.expected_date.localeCompare(b.expected_date)),
+    [incomeStats],
+  );
   const health = useMemo(() => computeHealthScore(entries, dayNumber, bills), [entries, dayNumber, bills]);
   const insights = useMemo(
     () => [
       ...computeInsights(entries),
       ...computeBillInsights(bills, { monthIncome: stats.monthIn, balance: stats.balance }),
+      ...computeIncomeInsights(incomeList, { balance: stats.balance }),
+      ...(incomeStats.totalExpectedThisMonth > 0 && billStats.totalDueThisMonth + billStats.totalOverdue > 0
+        ? [
+            {
+              icon: "tip" as const,
+              text:
+                incomeStats.totalExpectedThisMonth >= billStats.totalDueThisMonth + billStats.totalOverdue
+                  ? `Expected income (${fmt(incomeStats.totalExpectedThisMonth)}) covers bills still due this month (${fmt(billStats.totalDueThisMonth + billStats.totalOverdue)}) — forecast only.`
+                  : `Bills still due (${fmt(billStats.totalDueThisMonth + billStats.totalOverdue)}) exceed expected income (${fmt(incomeStats.totalExpectedThisMonth)}) this month.`,
+            },
+          ]
+        : []),
     ],
-    [entries, bills, stats.monthIn, stats.balance],
+    [entries, bills, incomeList, incomeStats, billStats, stats.monthIn, stats.balance],
   );
 
 
@@ -452,6 +493,14 @@ function Dashboard() {
               aria-label="Bills"
             >
               <Receipt className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Bills</span>
+            </Link>
+            <Link
+              to="/income"
+              search={{ filter: "all" as const, open: undefined }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              aria-label="Income"
+            >
+              <HandCoins className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Income</span>
             </Link>
             <Link
               to="/calendar"
@@ -616,6 +665,14 @@ function Dashboard() {
             tone="income"
             loading={billsQ.isLoading}
           />
+        </section>
+
+        {/* Income at a glance (forecast only) */}
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <IncomeStatCard label="Expected this month" count={incomeStats.expectedThisMonth.length} total={incomeStats.totalExpectedThisMonth} filter="expected" tone="brand" loading={incomeQ.isLoading} />
+          <IncomeStatCard label="Due soon" count={incomeStats.dueSoon.length} total={incomeStats.totalDueSoon} filter="expected" tone="brand" loading={incomeQ.isLoading} />
+          <IncomeStatCard label="Received this month" count={incomeStats.receivedThisMonth.length} total={incomeStats.totalReceivedThisMonth} filter="received" tone="income" loading={incomeQ.isLoading} />
+          <IncomeStatCard label="Overdue income" count={incomeStats.overdue.length} total={incomeStats.totalOverdue} filter="overdue" tone="expense" loading={incomeQ.isLoading} />
         </section>
 
         {/* Financial Health */}
@@ -896,6 +953,72 @@ function Dashboard() {
                 </ul>
                 <Link
                   to="/bills"
+                  search={{ filter: "all" as const, open: undefined }}
+                  className="block rounded-xl border border-border px-3 py-2 text-center text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  View All
+                </Link>
+              </div>
+            )}
+          </WidgetCard>
+
+          {/* Upcoming income */}
+          <WidgetCard title="Upcoming Income" icon={<HandCoins className="h-4 w-4" />}>
+            {incomeQ.isLoading ? (
+              <ListSkeleton />
+            ) : upcomingIncome.length === 0 ? (
+              <div className="space-y-3">
+                <EmptyState
+                  icon={<HandCoins className="h-6 w-6" />}
+                  title="No upcoming income"
+                  hint="Add salary, invoices or other expected payments to forecast them here."
+                  compact
+                />
+                <Link
+                  to="/income"
+                  search={{ filter: "all" as const, open: undefined }}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Income
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <ul className="space-y-1.5">
+                  {upcomingIncome.slice(0, 5).map((i) => {
+                    const st = incomeStatus(i);
+                    return (
+                      <li key={i.id}>
+                        <Link
+                          to="/income"
+                          search={{ filter: "all" as const, open: i.id }}
+                          className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-muted/60"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium">{i.name}</div>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <span>{i.expected_date}</span>
+                              {i.source && (
+                                <>
+                                  <span>·</span>
+                                  <span className="truncate rounded-full bg-muted px-1.5 py-0.5">{i.source}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-income">{fmt(i.amount)}</div>
+                            <span className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-medium capitalize ${incomeStatusTone(st)}`}>
+                              {st}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <Link
+                  to="/income"
                   search={{ filter: "all" as const, open: undefined }}
                   className="block rounded-xl border border-border px-3 py-2 text-center text-xs font-medium text-muted-foreground transition hover:text-foreground"
                 >
@@ -1341,6 +1464,53 @@ function BillStatCard({
           <div className="mt-3 font-display text-xl font-semibold tracking-tight sm:text-2xl">{fmt(total)}</div>
           <div className="mt-0.5 text-[11px] text-muted-foreground">
             {count} bill{count === 1 ? "" : "s"}
+          </div>
+        </>
+      )}
+    </Link>
+  );
+}
+
+function IncomeStatCard({
+  label,
+  count,
+  total,
+  filter,
+  tone,
+  loading,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  filter: "expected" | "received" | "overdue";
+  tone: "income" | "expense" | "brand";
+  loading?: boolean;
+}) {
+  const toneClass =
+    tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "expense"
+        ? "bg-expense/10 text-expense"
+        : "bg-accent/50 text-accent-foreground";
+  return (
+    <Link
+      to="/income"
+      search={{ filter, open: undefined }}
+      className="rounded-2xl border border-border bg-card p-4 shadow-soft transition hover:shadow-lift"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className={`grid h-7 w-7 place-items-center rounded-lg ${toneClass}`}>
+          <HandCoins className="h-4 w-4" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-3 h-7 w-20" />
+      ) : (
+        <>
+          <div className="mt-3 font-display text-xl font-semibold tracking-tight sm:text-2xl">{fmt(total)}</div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">
+            {count} entr{count === 1 ? "y" : "ies"}
           </div>
         </>
       )}
