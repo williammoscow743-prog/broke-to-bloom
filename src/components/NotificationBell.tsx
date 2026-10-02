@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Bell, CheckCheck, X, AlertCircle, Info, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 type Notif = {
   id: string;
@@ -67,10 +68,10 @@ export function NotificationBell({ userId }: { userId: string }) {
           </span>
         )}
       </button>
-      {open && (
-        <div className="fixed inset-0 z-[60] flex justify-end bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
+      {open && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[70] flex h-[100dvh] justify-end bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div
-            className="flex h-full w-full max-w-sm flex-col border-l border-border bg-card shadow-lift animate-in slide-in-from-right"
+            className="flex h-full max-h-[100dvh] w-full max-w-sm flex-col overflow-hidden border-l border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-lift animate-in slide-in-from-right"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -130,7 +131,8 @@ export function NotificationBell({ userId }: { userId: string }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
