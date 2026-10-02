@@ -93,7 +93,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {list.length === 0 ? (
                 <div className="grid place-items-center px-6 py-20 text-center">
                   <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
