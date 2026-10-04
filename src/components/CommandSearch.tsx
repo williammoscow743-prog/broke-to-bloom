@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, X, Wallet, ArrowUpRight, Bell, Settings, Calendar as CalIcon, LayoutDashboard, Receipt } from "lucide-react";
+import { Search, X, Wallet, ArrowUpRight, Bell, Settings, Calendar as CalIcon, LayoutDashboard, Receipt, HandCoins } from "lucide-react";
 import { fmt } from "@/lib/finance";
 
 type Hit =
@@ -15,6 +15,9 @@ const NAV: Hit[] = [
   { kind: "nav", id: "n-tx", title: "Transactions", sub: "Search & manage entries", to: "/transactions", icon: <ArrowUpRight className="h-4 w-4" /> },
   { kind: "nav", id: "n-acc", title: "Accounts", sub: "Balances & transfers", to: "/accounts", icon: <Wallet className="h-4 w-4" /> },
   { kind: "nav", id: "n-bills", title: "Bills", sub: "Open Bills and manage upcoming, paid and overdue bills.", to: "/bills", icon: <Receipt className="h-4 w-4" />, keywords: "bills bill upcoming bills paid overdue payments" },
+  { kind: "nav", id: "n-income", title: "Income", sub: "Upcoming & expected income", to: "/income", icon: <HandCoins className="h-4 w-4" />, keywords: "income upcoming income expected income expected payments money coming in received overdue" },
+  { kind: "nav", id: "n-income-expected", title: "Expected Income", sub: "Income still on the way", to: "/income", icon: <HandCoins className="h-4 w-4" />, keywords: "income upcoming income expected income expected payments money coming in" },
+  { kind: "nav", id: "n-income-overdue", title: "Overdue Income", sub: "Expected income past its date", to: "/income", icon: <HandCoins className="h-4 w-4" />, keywords: "income overdue expected income late payments money coming in" },
   { kind: "nav", id: "n-cal", title: "Calendar", sub: "Cash flow by day", to: "/calendar", icon: <CalIcon className="h-4 w-4" /> },
   { kind: "nav", id: "n-notif", title: "Notifications", sub: "Alerts & reminders", to: "/notifications", icon: <Bell className="h-4 w-4" /> },
   { kind: "nav", id: "n-set", title: "Settings", sub: "Profile & preferences", to: "/settings", icon: <Settings className="h-4 w-4" /> },
@@ -82,6 +85,9 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     onClose();
     if (h.kind === "nav") {
       if (h.id === "n-bills") navigate({ to: "/bills", search: { filter: "all" as const, open: undefined } });
+      else if (h.id === "n-income") navigate({ to: "/income", search: { filter: "all" as const, open: undefined } });
+      else if (h.id === "n-income-expected") navigate({ to: "/income", search: { filter: "expected" as const, open: undefined } });
+      else if (h.id === "n-income-overdue") navigate({ to: "/income", search: { filter: "overdue" as const, open: undefined } });
       else navigate({ to: h.to });
     } else if (h.kind === "entry") navigate({ to: "/transactions", search: { q: h.title } as any });
     else if (h.kind === "account") navigate({ to: "/accounts" });
